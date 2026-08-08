@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>企业门户 - 欢迎登录</title>
+  <style>
+    :root {
+      --bg: #0a0e1a; --bg2: #111827; --card: #1a2235; --card2: #1e2a42;
+      --primary: #4f8ef7; --primary2: #6ab0ff; --accent: #f7c948;
+      --success: #34d399; --danger: #f87171; --text: #e2e8f0;
+      --text2: #94a3b8; --text3: #475569; --border: #1e2d4a;
+      --radius: 16px; --shadow: 0 8px 40px rgba(0,0,0,.45);
+      --transition: .28s cubic-bezier(.4,0,.2,1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden;
+    }
+    #bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .container {
+      position: relative; z-index: 10; min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 24px 16px;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse-ring {
+      0%   { transform: scale(1);   opacity: .6; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(-8px); }
+    }
+    @keyframes confetti-fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+    .anim-up { animation: fadeUp .6s var(--transition) both; }
+    .anim-in { animation: fadeIn .4s ease both; }
+    .delay-1 { animation-delay: .1s; }
+    .delay-2 { animation-delay: .2s; }
+    .delay-3 { animation-delay: .3s; }
+    .delay-4 { animation-delay: .4s; }
+    .delay-5 { animation-delay: .5s; }
+
+    .page { display: none; }
+    .page.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+    /* --- 登录页 --- */
+    .brand-logo {
+      font-size: 56px; margin-bottom: 12px;
+      filter: drop-shadow(0 0 20px rgba(79,142,247,.4));
+      animation: float 3s ease-in-out infinite;
+    }
+    .brand-name {
+      font-size: 32px; font-weight: 700; letter-spacing: 4px;
+      background: linear-gradient(135deg, #4f8ef7, #a78bfa, #f7c948);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;
+    }
+    .brand-sub {
+      color: var(--text2); font-size: 15px; letter-spacing: 2px;
+      margin-bottom: 48px; text-transform: uppercase;
+    }
+    .login-form {
+      width: 100%; max-width: 420px; background: var(--card); border-radius: var(--radius);
+      padding: 40px; box-shadow: var(--shadow); border: 1px solid var(--border);
+    }
+    .form-title { font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 28px; }
+    .field { margin-bottom: 20px; }
+    .field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 8px; letter-spacing: 1px; }
+    .field input {
+      width: 100%; background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 13px 16px; font-size: 15px; color: var(--text);
+      outline: none; transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .field input:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,142,247,.15);
+    }
+    .field input::placeholder { color: var(--text3); }
+    .btn-primary {
+      width: 100%; padding: 14px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #4f8ef7, #6ab0ff);
+      color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+      letter-spacing: 2px; transition: transform var(--transition), box-shadow var(--transition); margin-top: 8px;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(79,142,247,.4); }
+    .btn-primary:active { transform: translateY(0); }
+    .login-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; min-height: 18px; }
+
+    /* --- 欢迎仪式页 --- */
+    .welcome-card { text-align: center; max-width: 600px; }
+    .welcome-avatar {
+      width: 120px; height: 120px; border-radius: 50%; overflow: hidden;
+      margin: 0 auto 24px; position: relative; border: 3px solid var(--primary);
+      box-shadow: 0 0 30px rgba(79,142,247,.3);
+    }
+    .welcome-avatar::before {
+      content: ''; position: absolute; inset: -8px; border-radius: 50%;
+      border: 2px solid var(--primary); opacity: .4;
+      animation: pulse-ring 2s ease-out infinite;
+    }
+    .welcome-avatar .avatar-fallback {
+      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #4f8ef7, #a78bfa); font-size: 48px; font-weight: 700; color: #fff;
+    }
+    .welcome-title {
+      font-size: 36px; font-weight: 700; margin-bottom: 8px;
+      background: linear-gradient(135deg, #fff, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .welcome-subtitle { font-size: 18px; color: var(--text2); margin-bottom: 8px; }
+    .welcome-wish { font-size: 14px; color: var(--accent); letter-spacing: 1px; margin-bottom: 40px; }
+    .welcome-steps { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 420px; margin: 0 auto; }
+    .welcome-step {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 20px; text-align: left;
+      transition: border-color var(--transition), transform var(--transition);
+    }
+    .welcome-step:hover { border-color: var(--primary); transform: translateX(4px); }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;
+    }
+    .step-num.done { background: var(--success); color: #fff; }
+    .step-num.todo { background: var(--card2); color: var(--text2); }
+    .step-num.now  { background: var(--primary); color: #fff; animation: pulse-ring 1.5s ease-out infinite; }
+    .step-info h4 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .step-info p  { font-size: 12px; color: var(--text2); }
+    .btn-start {
+      margin-top: 40px; padding: 16px 48px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #4f8ef7, #a78bfa);
+      color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+      letter-spacing: 2px; transition: transform var(--transition), box-shadow var(--transition);
+      box-shadow: 0 4px 20px rgba(79,142,247,.35);
+    }
+    .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(79,142,247,.5); }
+
+    /* --- 实名认证页 --- */
+    .auth-card {
+      width: 100%; max-width: 520px; background: var(--card);
+      border-radius: var(--radius); padding: 40px; box-shadow: var(--shadow); border: 1px solid var(--border);
+    }
+    .auth-card h2 { font-size: 22px; text-align: center; margin-bottom: 6px; }
+    .auth-card .desc { text-align: center; color: var(--text2); font-size: 14px; margin-bottom: 32px; }
+    .auth-form { display: flex; flex-direction: column; gap: 16px; }
+    .auth-form .field input, .auth-form .field select {
+      width: 100%; background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 13px 16px; font-size: 15px; color: var(--text);
+      outline: none; transition: border-color var(--transition), box-shadow var(--transition);
+      -webkit-appearance: none;
+    }
+    .auth-form .field select { cursor: pointer; }
+    .auth-form .field select option { background: var(--bg2); }
+    .auth-form .field input:focus, .auth-form .field select:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,142,247,.15);
+    }
+    .id-card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 28px;
+      text-align: center; cursor: pointer; transition: border-color var(--transition), background var(--transition);
+      position: relative; overflow: hidden;
+    }
+    .upload-zone:hover { border-color: var(--primary); background: rgba(79,142,247,.05); }
+    .upload-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-zone .icon { font-size: 36px; margin-bottom: 8px; }
+    .upload-zone p { font-size: 14px; color: var(--text2); }
+    .upload-zone small { font-size: 12px; color: var(--text3); }
+    .id-preview { width: 100%; height: 120px; object-fit: cover; border-radius: 10px; margin-top: 10px; border: 1px solid var(--border); }
+    .btn-auth-submit {
+      padding: 15px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #34d399, #10b981);
+      color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+      letter-spacing: 2px; transition: transform var(--transition), box-shadow var(--transition); margin-top: 8px;
+    }
+    .btn-auth-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(52,211,153,.4); }
+    .auth-tip { text-align: center; font-size: 12px; color: var(--text3); margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+    /* --- 员工手册页（扫码签署） --- */
+    .handbook-card {
+      width: 100%; max-width: 680px; background: var(--card);
+      border-radius: var(--radius); padding: 40px; box-shadow: var(--shadow); border: 1px solid var(--border);
+    }
+    .handbook-card h2 { font-size: 22px; text-align: center; margin-bottom: 6px; }
+    .handbook-card .desc { text-align: center; color: var(--text2); font-size: 14px; margin-bottom: 24px; }
+    .handbook-scroll {
+      height: 380px; overflow-y: auto; background: var(--bg2);
+      border-radius: 12px; padding: 24px; margin-bottom: 20px;
+      border: 1px solid var(--border); scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .handbook-scroll::-webkit-scrollbar { width: 6px; }
+    .handbook-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .handbook-content h3 { color: var(--primary2); font-size: 16px; margin: 20px 0 8px; }
+    .handbook-content h3:first-child { margin-top: 0; }
+    .handbook-content p { font-size: 14px; line-height: 1.8; color: var(--text2); margin-bottom: 10px; }
+    .handbook-content ul { padding-left: 20px; margin-bottom: 10px; }
+    .handbook-content li { font-size: 14px; line-height: 1.8; color: var(--text2); margin-bottom: 4px; }
+    .handbook-loading { text-align: center; padding: 40px; color: var(--text3); }
+    .qr-section {
+      background: var(--bg2); border-radius: 12px; padding: 24px;
+      text-align: center; border: 1px solid var(--border); margin-bottom: 20px;
+    }
+    .qr-section h3 { font-size: 16px; color: var(--accent); margin-bottom: 6px; }
+    .qr-section p { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+    .qr-code { display: inline-block; background: #fff; padding: 8px; border-radius: 10px; }
+    .qr-code img { display: block; width: 180px; height: 180px; }
+    .qr-url { font-size: 11px; color: var(--text3); word-break: break-all; margin-top: 10px; background: var(--card); padding: 6px 10px; border-radius: 6px; }
+    .sign-status {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-size: 14px; padding: 12px; border-radius: 10px; margin-bottom: 16px;
+    }
+    .sign-status.pending { background: rgba(247,201,72,.1); color: var(--accent); border: 1px solid rgba(247,201,72,.3); }
+    .sign-status.done    { background: rgba(52,211,153,.1);  color: var(--success); border: 1px solid rgba(52,211,153,.3); }
+    .sign-preview { max-width: 160px; border-radius: 8px; border: 2px solid var(--success); margin: 8px auto 0; display: block; }
+    .btn-sign-qr {
+      width: 100%; padding: 15px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #f7c948, #f59e0b);
+      color: #1a1a2e; font-size: 15px; font-weight: 700; cursor: pointer;
+      letter-spacing: 2px; transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .btn-sign-qr:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(247,201,72,.4); }
+    .btn-sign-qr.done { background: linear-gradient(135deg, #34d399, #10b981); color: #fff; }
+
+    /* --- 签署成功页 --- */
+    .sign-success {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 60px 40px;
+    }
+    .sign-success .check-circle {
+      width: 80px; height: 80px; background: rgba(52,211,153,.15);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
+    }
+    .sign-success svg { width: 44px; height: 44px; }
+    .sign-success h3 { font-size: 22px; margin-bottom: 8px; color: var(--success); }
+    .sign-success p { font-size: 15px; color: var(--text2); }
+
+    /* --- 导航主页 --- */
+    .nav-header { width: 100%; max-width: 900px; margin-bottom: 36px; text-align: center; }
+    .nav-header .greeting { font-size: 15px; color: var(--text2); margin-bottom: 6px; }
+    .nav-header .user-welcome { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .nav-header .user-info { font-size: 13px; color: var(--text3); }
+    .nav-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 20px; width: 100%; max-width: 900px;
+    }
+    @media (max-width: 700px) { .nav-grid { grid-template-columns: 1fr; } }
+    .nav-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 32px 24px; text-decoration: none; color: inherit;
+      display: flex; flex-direction: column; align-items: center;
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+      position: relative; overflow: hidden;
+    }
+    .nav-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(79,142,247,.08), transparent);
+      opacity: 0; transition: opacity var(--transition);
+    }
+    .nav-card:hover { transform: translateY(-6px); border-color: var(--primary); box-shadow: var(--shadow); }
+    .nav-card:hover::before { opacity: 1; }
+    .nav-icon {
+      width: 64px; height: 64px; border-radius: 18px;
+      display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 18px;
+    }
+    .nav-icon.blue   { background: linear-gradient(135deg, #4f8ef7, #60a5fa); box-shadow: 0 4px 16px rgba(79,142,247,.3); }
+    .nav-icon.green  { background: linear-gradient(135deg, #34d399, #10b981); box-shadow: 0 4px 16px rgba(52,211,153,.3); }
+    .nav-icon.purple { background: linear-gradient(135deg, #a78bfa, #8b5cf6); box-shadow: 0 4px 16px rgba(167,139,250,.3); }
+    .nav-name { font-size: 17px; font-weight: 600; margin-bottom: 6px; text-align: center; }
+    .nav-desc { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.6; }
+    .nav-tag {
+      position: absolute; top: 14px; right: 14px;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2px 10px; font-size: 11px; color: var(--text2);
+    }
+    .nav-footer { margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .btn-reset {
+      padding: 8px 20px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--text3); font-size: 13px; cursor: pointer;
+      transition: border-color var(--transition), color var(--transition);
+    }
+    .btn-reset:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* --- Toast --- */
+    .toast {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-100px);
+      background: var(--card2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px 24px; font-size: 14px; z-index: 9999; opacity: 0;
+      transition: transform .35s ease, opacity .35s ease; pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.success { border-color: var(--success); color: var(--success); }
+    .toast.error   { border-color: var(--danger);  color: var(--danger); }
+
+    /* --- 彩纸 --- */
+    #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden; }
+    .confetti-piece {
+      position: absolute; top: -10px; width: 10px; height: 16px;
+      border-radius: 2px; animation: confetti-fall linear forwards;
+    }
+
+    @media (max-width: 480px) {
+      .login-form, .auth-card, .handbook-card { padding: 28px 20px; }
+      .welcome-title { font-size: 26px; }
+      .nav-name { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="confetti"></div>
+<div class="toast" id="toast"></div>
+
+<!-- ====== 登录页 ====== -->
+<div class="container page active" id="page-login">
+  <div class="brand-logo">🏢</div>
+  <div class="brand-name anim-up">企业门户</div>
+  <div class="brand-sub anim-up delay-1">Enterprise Portal</div>
+  <div class="login-form anim-up delay-2">
+    <div class="form-title">员工登录</div>
+    <div class="field">
+      <label>姓名</label>
+      <input type="text" id="login-input" placeholder="请输入姓名" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>部门</label>
+      <input type="text" id="login-dept" placeholder="请输入所属部门" autocomplete="off" />
+    </div>
+    <button class="btn-primary" onclick="doLogin()">登 录</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ====== 欢迎仪式页 ====== -->
+<div class="container page" id="page-welcome">
+  <div class="welcome-card anim-up">
+    <div class="welcome-avatar">
+      <div class="avatar-fallback" id="welcome-avatar-text"></div>
+    </div>
+    <div class="welcome-title">欢迎加入！</div>
+    <div class="welcome-subtitle" id="welcome-name"></div>
+    <div class="welcome-wish">✨ 与优秀的人一起，做有意义的事 ✨</div>
+    <div class="welcome-steps">
+      <div class="welcome-step anim-up delay-1">
+        <div class="step-num now">1</div>
+        <div class="step-info"><h4>实名认证</h4><p>提交姓名、部门、身份证等信息</p></div>
+      </div>
+      <div class="welcome-step anim-up delay-2">
+        <div class="step-num todo">2</div>
+        <div class="step-info"><h4>签署员工手册</h4><p>扫码手机签名，签署公司制度</p></div>
+      </div>
+      <div class="welcome-step anim-up delay-3">
+        <div class="step-num todo">3</div>
+        <div class="step-info"><h4>进入工作台</h4><p>访问三大核心系统</p></div>
+      </div>
+    </div>
+    <button class="btn-start anim-up delay-4" onclick="goPage('page-auth')">开始入职流程 →</button>
+  </div>
+</div>
+
+<!-- ====== 实名认证页 ====== -->
+<div class="container page" id="page-auth">
+  <div class="auth-card anim-up">
+    <h2>🪪 实名认证</h2>
+    <div class="desc">请填写真实信息，信息仅用于内部管理，绝不对外泄露</div>
+    <div class="auth-form">
+      <div class="field">
+        <label>姓名（必填）</label>
+        <input type="text" id="auth-name" placeholder="请输入真实姓名" />
+      </div>
+      <div class="field">
+        <label>部门（必填）</label>
+        <select id="auth-dept">
+          <option value="">请选择部门</option>
+          <option>采购部</option>
+          <option>摄影部</option>
+          <option>综合行政部</option>
+          <option>跨境部</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>身份证号（必填）</label>
+        <input type="text" id="auth-idcard" placeholder="18位身份证号" maxlength="18" />
+      </div>
+      <div class="field">
+        <label>入职日期</label>
+        <input type="date" id="auth-joindate" />
+      </div>
+      <div class="id-card-row">
+        <div class="field">
+          <label>身份证正面</label>
+          <div class="upload-zone" id="upload-front-zone">
+            <input type="file" accept="image/*" id="upload-front" />
+            <div class="icon">📷</div>
+            <p>点击上传正面</p>
+            <small>支持 JPG/PNG</small>
+            <img class="id-preview" id="preview-front" style="display:none" />
+          </div>
+        </div>
+        <div class="field">
+          <label>身份证背面</label>
+          <div class="upload-zone" id="upload-back-zone">
+            <input type="file" accept="image/*" id="upload-back" />
+            <div class="icon">🪪</div>
+            <p>点击上传背面</p>
+            <small>支持 JPG/PNG</small>
+            <img class="id-preview" id="preview-back" style="display:none" />
+          </div>
+        </div>
+      </div>
+      <button class="btn-auth-submit" onclick="doAuth()">提交认证信息</button>
+    </div>
+    <div class="auth-tip">🔒 您的信息已加密存储，仅管理员可见</div>
+  </div>
+</div>
+
+<!-- ====== 员工手册扫码签署页 ====== -->
+<div class="container page" id="page-handbook">
+  <div class="handbook-card anim-up">
+    <h2>📋 员工手册</h2>
+    <div class="desc" id="handbook-signee"></div>
+
+    <!-- 手册正文 -->
+    <div class="handbook-scroll" id="handbook-scroll">
+      <div class="handbook-content" id="handbook-body">
+        <div class="handbook-loading">正在加载手册内容...</div>
+      </div>
+    </div>
+
+    <!-- 签署状态 -->
+    <div class="sign-status pending" id="sign-status">
+      <span>⏳</span>
+      <span>等待扫码签署...</span>
+    </div>
+
+    <!-- 二维码区域 -->
+    <div class="qr-section">
+      <h3>📱 手机扫码签署</h3>
+      <p>请使用微信/浏览器扫描下方二维码，在手机上手写签名</p>
+      <div class="qr-code">
+        <img id="sign-qr-img" src="" alt="签署二维码" />
+      </div>
+      <div class="qr-url" id="sign-qr-url"></div>
+    </div>
+
+    <button class="btn-sign-qr" id="btn-sign-qr" onclick="openMobileSign()">打开手机扫码签署</button>
+  </div>
+</div>
+
+<!-- ====== 签署成功页 ====== -->
+<div class="container page" id="page-sign-success">
+  <div class="handbook-card sign-success anim-up">
+    <div class="check-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5"
+           stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    </div>
+    <h3>签署成功！</h3>
+    <p>欢迎正式加入团队，祝您工作愉快 🚀</p>
+    <img class="sign-preview" id="sign-preview" style="display:none" alt="签名" />
+    <button class="btn-start" style="margin-top: 32px;" onclick="goPage('page-home')">进入工作台 →</button>
+  </div>
+</div>
+
+<!-- ====== 导航主页 ====== -->
+<div class="container page" id="page-home">
+  <div class="nav-header anim-up">
+    <div class="greeting" id="home-greeting"></div>
+    <div class="user-welcome" id="home-name"></div>
+    <div class="user-info" id="home-info"></div>
+  </div>
+  <div class="nav-grid">
+    <a href="https://main.yunciku.pages.dev/" target="_blank" class="nav-card anim-up delay-1">
+      <span class="nav-tag">词库</span>
+      <div class="nav-icon blue">📚</div>
+      <div class="nav-name">词库管理系统</div>
+      <div class="nav-desc">智能词库分类、标签管理<br>高效检索与内容运营</div>
+    </a>
+    <a href="https://data-distribute-app.pages.dev/" target="_blank" class="nav-card anim-up delay-2">
+      <span class="nav-tag">数据</span>
+      <div class="nav-icon green">🔄</div>
+      <div class="nav-name">账号自动提取</div>
+      <div class="nav-desc">多平台账号数据<br>自动化提取与分发</div>
+    </a>
+    <a href="https://enterprise-knowledge-base-api.198981734.workers.dev" target="_blank" class="nav-card anim-up delay-3">
+      <span class="nav-tag">知识</span>
+      <div class="nav-icon purple">🧠</div>
+      <div class="nav-name">企业知识库</div>
+      <div class="nav-desc">企业级文档沉淀<br>AI 智能问答与检索</div>
+    </a>
+  </div>
+  <div class="nav-footer anim-up delay-4">
+    <button class="btn-reset" onclick="resetOnboarding()">🔄 重新入职</button>
+  </div>
+</div>
+
+<script>
+/* ========================================================
+   配置区
+   部署 Worker 后，把 API_BASE 改成你的 Worker 地址
+   例如：const API_BASE = 'https://enterprise-portal-api.你的账户.workers.dev';
+======================================================== */
+const API_BASE = '';  // 留空则在本地用相对路径测试，部署后填入实际地址
+
+function getApi(path) {
+  return API_BASE ? API_BASE + path : path;
+}
+
+/* ========================================================
+   背景粒子
+======================================================== */
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [], W, H;
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  function create() {
+    particles = Array.from({length: Math.floor((W*H)/14000)}, () => ({
+      x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.5+0.3,
+      vx: (Math.random()-.5)*0.3, vy: (Math.random()-.5)*0.3,
+      alpha: Math.random()*.5+.1,
+      color: ['#4f8ef7','#a78bfa','#f7c948'][Math.floor(Math.random()*3)]
+    }));
+  }
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p => {
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha; ctx.fill();
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<0||p.x>W) p.vx*=-1;
+      if(p.y<0||p.y>H) p.vy*=-1;
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', () => { resize(); create(); });
+  resize(); create(); draw();
+})();
+
+/* ========================================================
+   全局状态
+======================================================== */
+const STORAGE_KEY = 'enterprise_portal_data';
+let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+let signPollTimer = null;
+
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return '上午好 ☀️';
+  if (h < 14) return '中午好 🌤️';
+  if (h < 18) return '下午好 🌤️';
+  return '晚上好 🌙';
+}
+
+/* ========================================================
+   页面路由
+======================================================== */
+function goPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'page-home')     initHome();
+  if (id === 'page-welcome')  initWelcome();
+  if (id === 'page-handbook') initHandbook();
+  if (id !== 'page-handbook') stopSignPoll();
+  window.scrollTo(0, 0);
+}
+
+/* ========================================================
+   Toast & 彩纸
+======================================================== */
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type;
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+function fireConfetti() {
+  const el = document.getElementById('confetti');
+  const colors = ['#4f8ef7','#a78bfa','#f7c948','#34d399','#f87171','#60a5fa'];
+  for (let i = 0; i < 60; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left = Math.random()*100+'%';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.animationDuration = (Math.random()*2+2)+'s';
+    p.style.animationDelay = (Math.random()*0.8)+'s';
+    el.appendChild(p);
+    setTimeout(() => p.remove(), 4000);
+  }
+}
+
+/* ========================================================
+   登录
+======================================================== */
+function doLogin() {
+  const name = document.getElementById('login-input').value.trim();
+  const dept = document.getElementById('login-dept').value.trim();
+  const err  = document.getElementById('login-error');
+  if (!name) { err.textContent = '请输入姓名'; return; }
+  state.loginName = name;
+  state.loginDept = dept;
+  saveState();
+
+  // 已有完整入职记录 → 直接主页
+  if (state.authed && state.signed) {
+    goPage('page-home');
+    showToast('欢迎回来，' + name + '！');
+    return;
+  }
+  // 有认证但未签手册 → 去签手册
+  if (state.authed) {
+    goPage('page-handbook');
+    return;
+  }
+  // 新人 → 欢迎页
+  goPage('page-welcome');
+}
+
+/* ========================================================
+   欢迎页
+======================================================== */
+function initWelcome() {
+  const name = state.loginName || '';
+  document.getElementById('welcome-name').textContent = name ? '「' + name + '」，您好！' : '您好！';
+  document.getElementById('welcome-avatar-text').textContent = name ? name[0].toUpperCase() : '?';
+}
+
+/* ========================================================
+   实名认证
+======================================================== */
+async function doAuth() {
+  const name    = document.getElementById('auth-name').value.trim();
+  const dept    = document.getElementById('auth-dept').value;
+  const idcard  = document.getElementById('auth-idcard').value.trim();
+  const joindate = document.getElementById('auth-joindate').value;
+
+  if (!name)    { showToast('请输入姓名', 'error'); return; }
+  if (!dept)    { showToast('请选择部门', 'error'); return; }
+  if (!idcard || idcard.length !== 18) { showToast('请输入正确的18位身份证号', 'error'); return; }
+  const re = /^[1-9]\d{5}(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dX]$/;
+  if (!re.test(idcard)) { showToast('身份证号格式不正确', 'error'); return; }
+
+  state.authed = true;
+  state.authName = name;
+  state.authDept = dept;
+  state.authIdCard = idcard;
+  state.authJoinDate = joindate;
+  saveState();
+
+  // 向 Worker 注册员工
+  if (API_BASE) {
+    try {
+      const res = await fetch(getApi('/api/employees'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, dept })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        state.employeeId = data.id;
+        saveState();
+      }
+    } catch(e) { console.error('注册员工失败', e); }
+  }
+
+  showToast('认证成功！');
+  fireConfetti();
+  setTimeout(() => goPage('page-handbook'), 800);
+}
+
+/* ========================================================
+   图片预览
+======================================================== */
+['front','back'].forEach(side => {
+  document.getElementById('upload-' + side).addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const preview = document.getElementById('preview-' + side);
+      preview.src = ev.target.result; preview.style.display = 'block';
+      const zone = document.getElementById('upload-' + side + '-zone');
+      ['.icon','p','small'].forEach(s => zone.querySelector(s).style.display = 'none');
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+/* ========================================================
+   员工手册页（加载内容 + 二维码 + 轮询状态）
+======================================================== */
+let currentSignUrl = '';
+let currentEmployeeId = '';
+
+function initHandbook() {
+  const name = state.authName || state.loginName || '';
+  document.getElementById('handbook-signee').textContent = '签署人：' + name;
+  loadHandbook();
+  loadSignQr();
+  startSignPoll();
+}
+
+async function loadHandbook() {
+  const el = document.getElementById('handbook-body');
+  el.innerHTML = '<div class="handbook-loading">正在加载手册内容...</div>';
+
+  if (!API_BASE) {
+    // 无API时显示默认内容
+    el.innerHTML = `
+      <h3>第一章 总则</h3>
+      <p>欢迎加入我们的企业！本手册旨在帮助您快速了解公司文化、规章制度及行为规范。</p>
+      <h3>第二章 工作时间</h3>
+      <p>公司实行标准工时制，工作时间为每周一至周五上午 9:00 至下午 18:00。</p>
+      <h3>第三章 行为规范</h3>
+      <ul>
+        <li>遵守国家法律法规及公司各项规章制度</li>
+        <li>爱岗敬业，认真履行岗位职责</li>
+        <li>诚实守信，不弄虚作假，不损害公司利益</li>
+        <li>保守公司商业秘密，未经授权不得对外披露</li>
+        <li>尊重同事，团结协作，禁止职场骚扰</li>
+      </ul>
+      <h3>第四章 考勤与请假</h3>
+      <p>员工上下班须打卡考勤，因公外出须提前报备。请假须提前填写申请单。</p>
+      <h3>第五章 薪酬与福利</h3>
+      <p>公司按月发放工资，员工享有五险一金、带薪年假、节日福利等。</p>
+      <h3>第六章 保密义务</h3>
+      <p>员工对公司商业秘密负有保密义务，包括客户资料、财务数据、技术方案等。</p>
+      <h3>第七章 附则</h3>
+      <p>本手册由公司人事部负责解释，员工签署即表示已知悉并同意遵守本手册的全部内容。</p>
+    `;
+    return;
+  }
+
+  try {
+    const res = await fetch(getApi('/api/handbook'));
+    if (res.ok) {
+      const data = await res.json();
+      if (data.content) {
+        el.innerHTML = data.content;
+      } else {
+        el.innerHTML = '<div class="handbook-loading">暂无手册内容，请联系管理员上传</div>';
+      }
+    }
+  } catch(e) {
+    el.innerHTML = '<div class="handbook-loading">加载失败，请检查网络</div>';
+  }
+}
+
+async function loadSignQr() {
+  const empId = state.employeeId || 'guest_' + Date.now();
+  currentEmployeeId = empId;
+
+  // 优先从 API 获取该员工信息
+  if (API_BASE && state.employeeId) {
+    try {
+      const res = await fetch(getApi('/api/employees/' + state.employeeId));
+      if (res.ok) {
+        const emp = await res.json();
+        if (emp.signed) {
+          updateSignStatus(true, emp.signImage, emp.signTime);
+          return;
+        }
+      }
+    } catch(e) {}
+  }
+
+  // 生成本地二维码 URL（手机打开 m-sign.html）
+  const params = new URLSearchParams();
+  params.set('id', empId);
+  params.set('name', state.authName || state.loginName || '');
+  params.set('dept', state.authDept || '');
+  currentSignUrl = (API_BASE || location.origin + location.pathname.replace('index.html','')) +
+                   '/m-sign.html?' + params.toString();
+
+  document.getElementById('sign-qr-img').src =
+    'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(currentSignUrl);
+  document.getElementById('sign-qr-url').textContent = currentSignUrl;
+
+  updateSignStatus(false);
+}
+
+function updateSignStatus(signed, signImage, signTime) {
+  const statusEl = document.getElementById('sign-status');
+  const btnEl    = document.getElementById('btn-sign-qr');
+  const qrEl     = document.querySelector('.qr-section');
+
+  if (signed) {
+    statusEl.className = 'sign-status done';
+    statusEl.innerHTML = '<span>✅</span><span>已签署完成</span>' +
+      (signTime ? '<br><span style="font-size:12px">' + new Date(signTime).toLocaleString('zh-CN') + '</span>' : '');
+    btnEl.classList.add('done');
+    btnEl.textContent = '✓ 已完成签署';
+    btnEl.disabled = true;
+    qrEl.style.display = 'none';
+    if (signImage) {
+      document.getElementById('sign-preview').src = signImage;
+      document.getElementById('sign-preview').style.display = 'block';
+    }
+  } else {
+    statusEl.className = 'sign-status pending';
+    statusEl.innerHTML = '<span>⏳</span><span>等待扫码签署...</span>';
+  }
+}
+
+function startSignPoll() {
+  stopSignPoll();
+  if (!state.employeeId || !API_BASE) return;
+  signPollTimer = setInterval(checkSignStatus, 3000);
+}
+
+function stopSignPoll() {
+  if (signPollTimer) { clearInterval(signPollTimer); signPollTimer = null; }
+}
+
+async function checkSignStatus() {
+  if (!state.employeeId || !API_BASE) return;
+  try {
+    const res = await fetch(getApi('/api/employees/' + state.employeeId));
+    if (res.ok) {
+      const emp = await res.json();
+      if (emp.signed) {
+        stopSignPoll();
+        state.signed = true;
+        saveState();
+        showToast('员工已签署员工手册！');
+        fireConfetti();
+        setTimeout(() => goPage('page-sign-success'), 800);
+      }
+    }
+  } catch(e) {}
+}
+
+function openMobileSign() {
+  if (currentSignUrl) {
+    // 尝试唤起微信扫码（iOS 安卓通用）
+    const link = document.createElement('a');
+    link.href = currentSignUrl;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.click();
+    showToast('已在新窗口打开，复制链接到手机浏览器也可', 'success');
+  } else {
+    showToast('正在生成二维码，请稍候...', 'error');
+  }
+}
+
+/* ========================================================
+   主页
+======================================================== */
+function initHome() {
+  const name = state.authName || state.loginName || '';
+  document.getElementById('home-greeting').textContent = getGreeting();
+  document.getElementById('home-name').textContent = name ? name + '，欢迎回来！' : '欢迎回来！';
+  const parts = [];
+  if (state.authDept) parts.push(state.authDept);
+  if (state.authJoinDate) parts.push('入职 ' + state.authJoinDate);
+  document.getElementById('home-info').textContent = parts.join(' · ');
+}
+
+/* ========================================================
+   重置
+======================================================== */
+function resetOnboarding() {
+  if (!confirm('确定要重新入职吗？所有认证和签署信息将清除。')) return;
+  stopSignPoll();
+  localStorage.removeItem(STORAGE_KEY);
+  state = {};
+  document.getElementById('login-input').value = '';
+  document.getElementById('login-dept').value = '';
+  ['auth-name','auth-idcard'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('auth-dept').value = '';
+  document.getElementById('auth-joindate').value = '';
+  ['front','back'].forEach(s => {
+    document.getElementById('preview-'+s).style.display = 'none';
+    const zone = document.getElementById('upload-'+s+'-zone');
+    ['.icon','p','small'].forEach(sel => zone.querySelector(sel).style.display = '');
+    document.getElementById('upload-'+s).value = '';
+  });
+  const btn = document.getElementById('btn-sign-qr');
+  btn.classList.remove('done');
+  btn.textContent = '打开手机扫码签署';
+  btn.disabled = false;
+  document.querySelector('.qr-section').style.display = '';
+  document.getElementById('sign-preview').style.display = 'none';
+  goPage('page-login');
+  showToast('已重置，请重新登录');
+}
+
+/* ========================================================
+   监听来自手机签名页的消息
+======================================================== */
+window.addEventListener('message', e => {
+  if (e.data && e.data.type === 'sign_done' && e.data.employeeId === currentEmployeeId) {
+    if (e.data.signDataUrl) {
+      state.signed = true;
+      saveState();
+      stopSignPoll();
+      showToast('员工已签署员工手册！');
+      fireConfetti();
+      setTimeout(() => goPage('page-sign-success'), 800);
+    }
+  }
+});
+
+/* ========================================================
+   启动
+======================================================== */
+document.getElementById('auth-joindate').valueAsDate = new Date();
+
+(function boot() {
+  if (state.authed && state.signed) {
+    goPage('page-home');
+  } else if (state.authed) {
+    goPage('page-handbook');
+  } else if (state.loginName) {
+    goPage('page-welcome');
+  } else {
+    goPage('page-login');
+  }
+})();
+</script>
+</body>
+</html>

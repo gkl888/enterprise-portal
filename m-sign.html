@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>员工手册签署</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #0a0e1a; color: #e2e8f0; min-height: 100vh; padding: 16px;
+      padding-bottom: 100px;
+    }
+    .header {
+      text-align: center; padding: 20px 0 16px;
+    }
+    .header h1 { font-size: 20px; margin-bottom: 6px; }
+    .header .sub { font-size: 12px; color: #94a3b8; }
+
+    .signee-card {
+      background: #1a2235; border-radius: 12px; padding: 14px 16px;
+      margin-bottom: 16px; border: 1px solid #1e2d4a;
+    }
+    .signee-row { display: flex; justify-content: space-between; font-size: 13px; line-height: 1.8; }
+    .signee-row .label { color: #94a3b8; }
+    .signee-row .value { color: #e2e8f0; font-weight: 600; }
+
+    .section-title {
+      font-size: 14px; color: #4f8ef7; margin: 18px 0 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::before {
+      content: ''; width: 3px; height: 14px; background: #4f8ef7; border-radius: 2px;
+    }
+
+    .handbook-content {
+      background: #111827; border-radius: 12px; padding: 16px;
+      border: 1px solid #1e2d4a; max-height: 300px; overflow-y: auto;
+      font-size: 13px; line-height: 1.7; color: #cbd5e1;
+    }
+    .handbook-content h3 { color: #6ab0ff; font-size: 15px; margin: 14px 0 6px; }
+    .handbook-content h3:first-child { margin-top: 0; }
+    .handbook-content p { margin-bottom: 8px; }
+    .handbook-content ul { padding-left: 18px; margin-bottom: 8px; }
+    .handbook-content li { margin-bottom: 3px; }
+    .handbook-content .placeholder {
+      text-align: center; color: #64748b; padding: 30px 10px;
+      border: 2px dashed #1e2d4a; border-radius: 10px;
+    }
+
+    .confirm-card {
+      background: #1a2235; border-radius: 12px; padding: 14px 16px;
+      margin: 16px 0; border: 1px solid #1e2d4a;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .confirm-card input[type=checkbox] {
+      width: 18px; height: 18px; accent-color: #4f8ef7; flex-shrink: 0; margin-top: 1px;
+    }
+    .confirm-card label { font-size: 13px; line-height: 1.6; color: #cbd5e1; }
+
+    .sign-board {
+      background: #fff; border-radius: 12px; padding: 0;
+      border: 2px dashed #f7c948; position: relative;
+      margin-bottom: 12px; overflow: hidden;
+    }
+    .sign-board canvas {
+      display: block; width: 100%; height: 220px;
+      touch-action: none;
+    }
+    .sign-placeholder {
+      position: absolute; inset: 0; display: flex;
+      align-items: center; justify-content: center;
+      color: #94a3b8; font-size: 14px; pointer-events: none;
+    }
+    .sign-actions {
+      display: flex; gap: 10px; margin-bottom: 20px;
+    }
+    .btn-clear {
+      flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #1e2d4a;
+      background: #1a2235; color: #94a3b8; font-size: 14px; font-weight: 600;
+    }
+    .btn-submit {
+      flex: 2; padding: 14px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #34d399, #10b981);
+      color: #fff; font-size: 15px; font-weight: 700;
+      letter-spacing: 2px;
+    }
+    .btn-submit:disabled { opacity: .4; }
+
+    .success-page {
+      display: none; text-align: center; padding: 60px 20px;
+    }
+    .success-page.show { display: block; }
+    .success-icon {
+      width: 80px; height: 80px; border-radius: 50%; background: rgba(52,211,153,.15);
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .success-icon svg { width: 44px; height: 44px; }
+    .success-page h2 { font-size: 22px; color: #34d399; margin-bottom: 8px; }
+    .success-page p { color: #94a3b8; font-size: 14px; line-height: 1.7; }
+    .sign-time { color: #f7c948; margin-top: 12px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <!-- 签署页 -->
+  <div id="sign-page">
+    <div class="header">
+      <div style="font-size: 36px;">📋</div>
+      <h1>员工手册签署</h1>
+      <div class="sub">请仔细阅读后完成签署</div>
+    </div>
+
+    <div class="signee-card">
+      <div class="signee-row"><span class="label">签署人</span><span class="value" id="signee-name">--</span></div>
+      <div class="signee-row"><span class="label">部门</span><span class="value" id="signee-dept">--</span></div>
+      <div class="signee-row"><span class="label">日期</span><span class="value" id="signee-date">--</span></div>
+    </div>
+
+    <div class="section-title">员工手册</div>
+    <div class="handbook-content" id="handbook-content">
+      <div class="placeholder">📄 等待管理员上传员工手册...</div>
+    </div>
+
+    <div class="section-title">手写签名</div>
+    <div class="confirm-card">
+      <input type="checkbox" id="agree" />
+      <label for="agree">本人已阅读并完全理解《员工手册》全部内容，承诺遵守公司各项规章制度。</label>
+    </div>
+
+    <div class="sign-board">
+      <canvas id="sign-canvas"></canvas>
+      <div class="sign-placeholder" id="sign-placeholder">↑ 请在方框内手写您的签名 ↑</div>
+    </div>
+
+    <div class="sign-actions">
+      <button class="btn-clear" onclick="clearSign()">清除重写</button>
+      <button class="btn-submit" id="btn-submit" onclick="submitSign()" disabled>提交签署</button>
+    </div>
+  </div>
+
+  <!-- 签署成功页 -->
+  <div id="success-page" class="success-page">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5"
+           stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    </div>
+    <h2>签署成功！</h2>
+    <p>欢迎正式加入团队<br>祝您工作愉快 🚀</p>
+    <div class="sign-time" id="sign-time"></div>
+  </div>
+
+<script>
+/* ============ 解析 URL 参数 ============ */
+const params = new URLSearchParams(location.search);
+const employeeName = params.get('name') || '员工';
+const employeeDept = params.get('dept') || '未填写';
+const employeeId   = params.get('id')   || ('emp_' + Date.now());
+
+document.getElementById('signee-name').textContent = employeeName;
+document.getElementById('signee-dept').textContent = employeeDept;
+document.getElementById('signee-date').textContent = formatDate(new Date());
+
+/* ============ 加载员工手册内容 ============ */
+async function loadHandbook() {
+  // 优先从 URL 加载（管理员上传后传给员工）
+  const hbUrl = params.get('handbook');
+  if (hbUrl) {
+    try {
+      const res = await fetch(hbUrl);
+      const html = await res.text();
+      document.getElementById('handbook-content').innerHTML = html;
+      return;
+    } catch (e) {
+      console.error('加载手册失败', e);
+    }
+  }
+  // 默认占位内容
+  document.getElementById('handbook-content').innerHTML = `
+    <h3>第一章 总则</h3>
+    <p>欢迎加入我们的企业！本手册旨在帮助您快速了解公司文化、规章制度及行为规范，请仔细阅读并严格遵守。</p>
+    <h3>第二章 工作时间</h3>
+    <p>公司实行标准工时制，工作时间为每周一至周五上午 9:00 至下午 18:00，午休时间 12:00-13:00。</p>
+    <h3>第三章 行为规范</h3>
+    <ul>
+      <li>遵守国家法律法规及公司各项规章制度</li>
+      <li>爱岗敬业，认真履行岗位职责</li>
+      <li>诚实守信，不弄虚作假，不损害公司利益</li>
+      <li>保守公司商业秘密，未经授权不得对外披露</li>
+      <li>尊重同事，团结协作，禁止职场骚扰</li>
+    </ul>
+    <h3>第四章 考勤与请假</h3>
+    <p>员工上下班须打卡考勤，因公外出须提前报备。请假须提前填写申请单。</p>
+    <h3>第五章 薪酬与福利</h3>
+    <p>公司按月发放工资，员工享有五险一金、带薪年假、节日福利等。</p>
+    <h3>第六章 保密义务</h3>
+    <p>员工对公司商业秘密负有保密义务，包括客户资料、财务数据、技术方案等。</p>
+    <h3>第七章 附则</h3>
+    <p>本手册由公司人事部负责解释，员工签署即表示已知悉并同意遵守本手册的全部内容。</p>
+  `;
+}
+
+/* ============ Canvas 手写签名 ============ */
+const canvas = document.getElementById('sign-canvas');
+const ctx = canvas.getContext('2d');
+const placeholder = document.getElementById('sign-placeholder');
+let drawing = false;
+let lastX = 0, lastY = 0;
+let hasDrawn = false;
+let dpr = window.devicePixelRatio || 1;
+
+function initCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, rect.width, rect.height);
+}
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return {
+    x: touch.clientX - rect.left,
+    y: touch.clientY - rect.top
+  };
+}
+
+function startDraw(e) {
+  e.preventDefault();
+  drawing = true;
+  const pos = getPos(e);
+  lastX = pos.x; lastY = pos.y;
+  placeholder.style.display = 'none';
+  hasDrawn = true;
+  checkSubmitable();
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+}
+
+function draw(e) {
+  if (!drawing) return;
+  e.preventDefault();
+  const pos = getPos(e);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  lastX = pos.x; lastY = pos.y;
+}
+
+function endDraw(e) {
+  if (!drawing) return;
+  e.preventDefault();
+  drawing = false;
+  ctx.beginPath();
+}
+
+canvas.addEventListener('touchstart', startDraw, { passive: false });
+canvas.addEventListener('touchmove',  draw,    { passive: false });
+canvas.addEventListener('touchend',   endDraw, { passive: false });
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup',   endDraw);
+canvas.addEventListener('mouseleave',endDraw);
+
+function clearSign() {
+  const rect = canvas.getBoundingClientRect();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, rect.width, rect.height);
+  placeholder.style.display = 'flex';
+  hasDrawn = false;
+  checkSubmitable();
+}
+
+function checkSubmitable() {
+  const agreed = document.getElementById('agree').checked;
+  document.getElementById('btn-submit').disabled = !(agreed && hasDrawn);
+}
+
+document.getElementById('agree').addEventListener('change', checkSubmitable);
+
+function submitSign() {
+  if (!hasDrawn) { alert('请先签名'); return; }
+  if (!document.getElementById('agree').checked) { alert('请先勾选确认'); return; }
+
+  // 获取签名图 base64
+  const signDataUrl = canvas.toDataURL('image/png');
+
+  // 保存到 localStorage（演示用；真实场景应上传到服务器）
+  const record = {
+    employeeId,
+    name: employeeName,
+    dept: employeeDept,
+    signImage: signDataUrl,
+    signTime: new Date().toISOString(),
+    userAgent: navigator.userAgent
+  };
+  localStorage.setItem('sign_record_' + employeeId, JSON.stringify(record));
+
+  // 显示成功页
+  document.getElementById('sign-page').style.display = 'none';
+  document.getElementById('success-page').classList.add('show');
+  document.getElementById('sign-time').textContent = '签署时间：' + formatDateTime(new Date());
+
+  // 通知主页面（如果是同一浏览器）
+  try {
+    if (window.opener) {
+      window.opener.postMessage({ type: 'sign_done', employeeId, signDataUrl }, '*');
+    }
+    // 通过 BroadcastChannel 通知其他标签页
+    const bc = new BroadcastChannel('enterprise_portal');
+    bc.postMessage({ type: 'sign_done', employeeId, signDataUrl });
+  } catch (e) {}
+}
+
+/* ============ 工具函数 ============ */
+function formatDate(d) {
+  return d.getFullYear() + '-' +
+         String(d.getMonth()+1).padStart(2,'0') + '-' +
+         String(d.getDate()).padStart(2,'0');
+}
+function formatDateTime(d) {
+  return formatDate(d) + ' ' +
+         String(d.getHours()).padStart(2,'0') + ':' +
+         String(d.getMinutes()).padStart(2,'0');
+}
+
+/* ============ 启动 ============ */
+window.addEventListener('load', () => {
+  initCanvas();
+  loadHandbook();
+});
+window.addEventListener('resize', () => initCanvas());
+</script>
+</body>
+</html>
