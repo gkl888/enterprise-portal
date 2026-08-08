@@ -508,7 +508,7 @@
    部署 Worker 后，把 API_BASE 改成你的 Worker 地址
    例如：const API_BASE = 'https://enterprise-portal-api.你的账户.workers.dev';
 ======================================================== */
-const API_BASE = '';  // 留空则在本地用相对路径测试，部署后填入实际地址
+const API_BASE = 'https://enterprise-portal.198981734.workers.dev';
 
 function getApi(path) {
   return API_BASE ? API_BASE + path : path;
