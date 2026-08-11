@@ -1,0 +1,18 @@
+name = "enterprise-portal-api"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# KV 命名空间 - 用于存储员工手册和员工签名数据
+kv_namespaces = [
+  { binding = "ENTERPRISE_KV", id = "YOUR_KV_NAMESPACE_ID" }
+]
+
+# Workers 付费计划（免费版即可）
+compatibility_flags = ["nodejs_compat"]
+
+# 环境配置
+[env.production]
+name = "enterprise-portal-api"
+kv_namespaces = [
+  { binding = "ENTERPRISE_KV", id = "YOUR_KV_NAMESPACE_ID" }
+]
