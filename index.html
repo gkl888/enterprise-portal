@@ -306,6 +306,41 @@
       border-radius: 2px; animation: confetti-fall linear forwards;
     }
 
+    /* --- 扫码区域 --- */
+    .scan-section {
+      width: 100%; max-width: 480px; background: var(--card); border: 1px solid var(--primary);
+      border-radius: var(--radius); padding: 24px; margin-top: 20px;
+    }
+    .scan-header {
+      font-size: 15px; font-weight: 600; color: var(--primary); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .scan-tip { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 16px; }
+    .scan-view {
+      background: var(--bg2); border-radius: 12px; overflow: hidden;
+      margin-bottom: 16px; min-height: 200px; position: relative;
+    }
+    .scan-frame {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 200px; height: 200px; border: 3px solid var(--primary);
+      border-radius: 16px; box-shadow: 0 0 0 4000px rgba(0,0,0,0.4);
+    }
+    .scan-instruction { text-align: center; padding: 80px 20px; color: var(--text3); font-size: 14px; }
+    .scan-actions { display: flex; gap: 12px; justify-content: center; }
+    .btn-scan {
+      flex: 1; padding: 14px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #4f8ef7, #6ab0ff);
+      color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .btn-scan-cancel {
+      flex: 1; padding: 14px; border-radius: 10px; border: 1px solid var(--border);
+      background: transparent; color: var(--text2); font-size: 14px; cursor: pointer;
+    }
+    .scan-result { margin-top: 16px; text-align: center; font-size: 14px; min-height: 24px; }
+    .scan-result.success { color: var(--success); }
+    .scan-result.fail { color: var(--danger); }
+    .scan-result.loading { color: var(--accent); }
+
     @media (max-width: 480px) {
       .login-form, .auth-card, .handbook-card { padding: 28px 20px; }
       .welcome-title { font-size: 26px; }
@@ -441,7 +476,7 @@
     </div>
 
     <!-- 二维码区域 -->
-    <div class="qr-section">
+    <div class="qr-section" id="qr-section">
       <h3>📱 手机扫码签署</h3>
       <p>请使用微信/浏览器扫描下方二维码，在手机上手写签名</p>
       <div class="qr-code">
@@ -451,6 +486,26 @@
     </div>
 
     <button class="btn-sign-qr" id="btn-sign-qr" onclick="openMobileSign()">打开手机扫码签署</button>
+    
+    <!-- 扫码接收企业微信 -->
+    <div class="scan-section" id="scan-section">
+      <div class="scan-header">
+        <span>📷 扫码接收签名</span>
+      </div>
+      <p class="scan-tip">手机签署成功后，点击下方「扫码接收」按钮，打开摄像头扫描手机二维码，即可同步签名到服务器存档</p>
+      <div class="scan-view" id="scan-view">
+        <video id="scan-video" autoplay playsinline style="display:none;width:100%;border-radius:12px;"></video>
+        <div class="scan-overlay" id="scan-overlay">
+          <div class="scan-frame"></div>
+          <div class="scan-instruction">摄像头将在此处显示</div>
+        </div>
+      </div>
+      <div class="scan-actions">
+        <button class="btn-scan" id="btn-start-scan" onclick="startScan()">📷 扫码接收签名</button>
+        <button class="btn-scan-cancel" id="btn-cancel-scan" onclick="stopScan()" style="display:none;">取消扫码</button>
+      </div>
+      <div class="scan-result" id="scan-result"></div>
+    </div>
   </div>
 </div>
 
@@ -854,6 +909,174 @@ function openMobileSign() {
   } else {
     showToast('正在生成二维码，请稍候...', 'error');
   }
+}
+
+/* ========================================================
+   扫码接收签名
+======================================================== */
+let scanStream = null;
+let scanWorker = null;
+
+async function startScan() {
+  const resultEl = document.getElementById('scan-result');
+  const video = document.getElementById('scan-video');
+  const overlay = document.getElementById('scan-overlay');
+  const btnStart = document.getElementById('btn-start-scan');
+  const btnCancel = document.getElementById('btn-cancel-scan');
+  
+  resultEl.textContent = '';
+  resultEl.className = 'scan-result';
+  
+  try {
+    // 请求摄像头
+    scanStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'environment' } 
+    });
+    video.srcObject = scanStream;
+    video.style.display = 'block';
+    overlay.style.display = 'none';
+    btnStart.style.display = 'none';
+    btnCancel.style.display = 'block';
+    
+    // 加载二维码解析库
+    loadQRScanner().then(qrScanner => {
+      if (qrScanner) {
+        scanWorker = qrScanner;
+        scanWorker.start();
+      }
+    });
+  } catch (err) {
+    resultEl.textContent = '摄像头权限被拒绝，请允许访问摄像头';
+    resultEl.className = 'scan-result fail';
+  }
+}
+
+function loadQRScanner() {
+  return new Promise(resolve => {
+    // 使用 jsQR 库进行二维码解析
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    script.onload = function() {
+      startQRProcessing();
+      resolve(scanWorker);
+    };
+    script.onerror = function() {
+      resultEl.textContent = '二维码解析库加载失败';
+      resultEl.className = 'scan-result fail';
+      resolve(null);
+    };
+    document.head.appendChild(script);
+  });
+}
+
+function startQRProcessing() {
+  const video = document.getElementById('scan-video');
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const resultEl = document.getElementById('scan-result');
+  
+  function tick() {
+    if (!scanStream || scanStream.active === false) return;
+    
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      
+      if (code) {
+        stopScan();
+        handleScannedData(code.data);
+        return;
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  
+  scanWorker = { start: () => requestAnimationFrame(tick), stop: () => {} };
+}
+
+async function handleScannedData(data) {
+  const resultEl = document.getElementById('scan-result');
+  resultEl.textContent = '正在解析...';
+  resultEl.className = 'scan-result loading';
+  
+  try {
+    // 解析二维码数据
+    if (!data.startsWith('SIGN:')) {
+      resultEl.textContent = '无效的签名二维码';
+      resultEl.className = 'scan-result fail';
+      return;
+    }
+    
+    const qrData = data.substring(5);
+    const jsonStr = decodeURIComponent(escape(atob(qrData)));
+    const signData = JSON.parse(jsonStr);
+    
+    resultEl.textContent = `收到签名：${signData.name} (${signData.dept})`;
+    resultEl.className = 'scan-result loading';
+    
+    // 提交到服务器
+    if (API_BASE) {
+      const res = await fetch(getApi('/api/sign'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: signData.id,
+          name: signData.name,
+          dept: signData.dept,
+          signImage: 'data:image/png;base64,' + signData.sign,
+          signTime: signData.time
+        })
+      });
+      
+      if (res.ok) {
+        resultEl.textContent = `✅ 签名已存档：${signData.name} - ${new Date(signData.time).toLocaleString('zh-CN')}`;
+        resultEl.className = 'scan-result success';
+        
+        // 更新状态
+        state.signed = true;
+        state.signTime = signData.time;
+        state.signImage = 'data:image/png;base64,' + signData.sign;
+        saveState();
+        
+        // 刷新签署状态显示
+        updateSignStatus(true, state.signImage, state.signTime);
+        
+        showToast('签名存档成功！');
+      } else {
+        throw new Error('提交失败');
+      }
+    } else {
+      // 无 API，本地保存
+      localStorage.setItem('sign_record_' + signData.id, JSON.stringify(signData));
+      resultEl.textContent = `✅ 签名已保存（本地模式）：${signData.name}`;
+      resultEl.className = 'scan-result success';
+    }
+  } catch (err) {
+    resultEl.textContent = '存档失败：' + err.message;
+    resultEl.className = 'scan-result fail';
+  }
+}
+
+function stopScan() {
+  const video = document.getElementById('scan-video');
+  const overlay = document.getElementById('scan-overlay');
+  const btnStart = document.getElementById('btn-start-scan');
+  const btnCancel = document.getElementById('btn-cancel-scan');
+  
+  if (scanStream) {
+    scanStream.getTracks().forEach(track => track.stop());
+    scanStream = null;
+  }
+  
+  video.srcObject = null;
+  video.style.display = 'none';
+  overlay.style.display = 'flex';
+  btnStart.style.display = 'block';
+  btnCancel.style.display = 'none';
 }
 
 /* ========================================================

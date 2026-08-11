@@ -107,6 +107,15 @@
       letter-spacing: 1px;
     }
     .btn-download:active { transform: scale(0.98); }
+    
+    /* 同步区域 */
+    .sync-section { width: 100%; max-width: 300px; margin: 20px auto; text-align: center; }
+    .sync-tip { background: #1a2235; border: 1px solid #4f8ef7; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #6ab0ff; margin-bottom: 16px; }
+    .qr-container { background: #fff; border-radius: 12px; padding: 16px; display: inline-block; margin-bottom: 12px; }
+    .qr-container canvas { display: block; }
+    .sync-status { font-size: 12px; color: #94a3b8; min-height: 18px; }
+    .sync-status.ok { color: #34d399; }
+    .sync-status.fail { color: #f87171; }
 
     /* 打印存档页样式 */
     @media print {
@@ -179,6 +188,14 @@
     <h2>签署成功！</h2>
     <p>欢迎正式加入团队<br>祝您工作愉快 🚀</p>
     <div class="sign-time" id="sign-time"></div>
+    
+    <!-- 同步区域 -->
+    <div class="sync-section" id="sync-section">
+      <div class="sync-tip">📱 请将二维码交给管理员电脑扫码存档</div>
+      <div class="qr-container" id="qr-container"></div>
+      <div class="sync-status" id="sync-status"></div>
+    </div>
+    
     <button class="btn-download" id="btn-download" onclick="downloadSignDoc()">
       📄 下载签名单（存档用）
     </button>
@@ -376,11 +393,16 @@ async function submitSign() {
   document.getElementById('success-page').classList.add('show');
   document.getElementById('sign-time').textContent = '签署时间：' + formatDateTime(new Date());
 
-  // 如果 Worker 失败，显示提示
+  // 如果 Worker 失败，显示二维码让电脑扫码
   if (!workerSuccess) {
+    // 生成二维码供电脑扫码
+    generateSignQR(record);
+  } else {
+    // Worker 成功，显示同步成功
+    document.getElementById('sync-section').style.display = 'none';
     const tip = document.createElement('div');
-    tip.style.cssText = 'background:#f59e0b;color:#fff;padding:12px 16px;border-radius:8px;margin-top:16px;font-size:13px;';
-    tip.textContent = '⚠️ 签名已本地保存，但同步到服务器失败（网络问题），请截图保留凭证';
+    tip.style.cssText = 'background:#34d399;color:#fff;padding:12px 16px;border-radius:8px;margin-top:16px;font-size:13px;';
+    tip.textContent = '✅ 已同步到服务器';
     document.getElementById('success-page').appendChild(tip);
   }
 
@@ -405,6 +427,50 @@ function formatDateTime(d) {
          String(d.getHours()).padStart(2,'0') + ':' +
          String(d.getMinutes()).padStart(2,'0') + ':' +
          String(d.getSeconds()).padStart(2,'0');
+}
+
+/* ============ 生成签名二维码（供电脑扫码） ============ */
+function generateSignQR(record) {
+  const container = document.getElementById('qr-container');
+  const status = document.getElementById('sync-status');
+  
+  // 生成签名数据包（压缩 base64，去掉前缀）
+  const signData = record.signImage.split(',')[1];
+  const payload = {
+    id: record.employeeId,
+    name: record.name,
+    dept: record.dept,
+    time: record.signTime,
+    sign: signData
+  };
+  
+  // 编码为 URL 安全的 base64
+  const qrData = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  
+  // 生成二维码（使用 canvas）
+  container.innerHTML = '<canvas id="sign-qr-canvas"></canvas>';
+  const qrCanvas = document.getElementById('sign-qr-canvas');
+  
+  // 使用简单的方式生成二维码（用 QRCode.js CDN）
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+  script.onload = function() {
+    new QRCode(qrCanvas, {
+      text: 'SIGN:' + qrData,
+      width: 200,
+      height: 200,
+      colorDark: '#1a1a2e',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.L
+    });
+    status.textContent = '请用管理员电脑扫码';
+  };
+  script.onerror = function() {
+    // CDN 加载失败，使用纯前端方案
+    status.textContent = '⚠️ 请截图发给管理员存档';
+    container.innerHTML = '<div style="color:#f87171;font-size:13px;padding:40px 20px;">签名已本地保存，请截图发给管理员</div>';
+  };
+  document.head.appendChild(script);
 }
 
 /* ============ 下载签名单 ============ */
