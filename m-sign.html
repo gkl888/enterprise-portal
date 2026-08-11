@@ -100,6 +100,35 @@
     .success-page h2 { font-size: 22px; color: #34d399; margin-bottom: 8px; }
     .success-page p { color: #94a3b8; font-size: 14px; line-height: 1.7; }
     .sign-time { color: #f7c948; margin-top: 12px; font-size: 13px; }
+    .btn-download {
+      margin-top: 24px; padding: 14px 24px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #4f8ef7, #6ab0ff);
+      color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+      letter-spacing: 1px;
+    }
+    .btn-download:active { transform: scale(0.98); }
+
+    /* 打印存档页样式 */
+    @media print {
+      body { background: #fff; color: #000; padding: 0; }
+      .print-doc { font-family: 'SimSun', serif; max-width: 800px; margin: 0 auto; padding: 40px; }
+      .print-doc h1 { text-align: center; font-size: 24px; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+      .print-info { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+      .print-info table { width: 100%; border-collapse: collapse; }
+      .print-info td { padding: 8px 12px; font-size: 14px; }
+      .print-info td:first-child { font-weight: bold; width: 100px; color: #666; }
+      .print-handbook { border: 1px solid #ddd; padding: 30px; border-radius: 8px; margin-bottom: 30px; }
+      .print-handbook h3 { font-size: 16px; margin: 20px 0 10px; color: #333; }
+      .print-handbook h3:first-child { margin-top: 0; }
+      .print-handbook p { font-size: 13px; line-height: 1.8; margin-bottom: 10px; color: #555; }
+      .print-handbook ul { margin: 10px 0; padding-left: 25px; }
+      .print-handbook li { font-size: 13px; line-height: 1.8; color: #555; }
+      .print-sign-area { border: 2px solid #333; padding: 40px 30px; border-radius: 8px; margin-bottom: 30px; text-align: center; }
+      .print-sign-label { font-size: 14px; color: #666; margin-bottom: 20px; }
+      .print-sign-img { max-width: 300px; max-height: 150px; margin: 0 auto; }
+      .print-confirm { background: #f9f9f9; border: 1px solid #ddd; padding: 20px; border-radius: 8px; font-size: 13px; line-height: 1.8; color: #555; margin-bottom: 20px; }
+      .print-footer { text-align: center; font-size: 12px; color: #999; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
+    }
   </style>
 </head>
 <body>
@@ -150,7 +179,13 @@
     <h2>签署成功！</h2>
     <p>欢迎正式加入团队<br>祝您工作愉快 🚀</p>
     <div class="sign-time" id="sign-time"></div>
+    <button class="btn-download" id="btn-download" onclick="downloadSignDoc()">
+      📄 下载签名单（存档用）
+    </button>
   </div>
+
+  <!-- 打印存档页（隐藏，打印时显示） -->
+  <div id="print-page" style="display:none;"></div>
 
 <script>
 /* ============ Worker API 地址 ============ */
@@ -368,7 +403,134 @@ function formatDate(d) {
 function formatDateTime(d) {
   return formatDate(d) + ' ' +
          String(d.getHours()).padStart(2,'0') + ':' +
-         String(d.getMinutes()).padStart(2,'0');
+         String(d.getMinutes()).padStart(2,'0') + ':' +
+         String(d.getSeconds()).padStart(2,'0');
+}
+
+/* ============ 下载签名单 ============ */
+function downloadSignDoc() {
+  const btn = document.getElementById('btn-download');
+  btn.disabled = true;
+  btn.textContent = '正在生成...';
+
+  const signTime = document.getElementById('sign-time').textContent.replace('签署时间：', '');
+  const handbookEl = document.getElementById('handbook-content');
+  
+  // 获取手册内容（去除 HTML 标签，保留结构）
+  let handbookHTML = handbookEl.innerHTML;
+  if (handbookEl.querySelector('.placeholder')) {
+    // 默认手册内容
+    handbookHTML = `
+      <h3>第一章 总则</h3>
+      <p>欢迎加入我们的企业！本手册旨在帮助您快速了解公司文化、规章制度及行为规范，请仔细阅读并严格遵守。</p>
+      <h3>第二章 工作时间</h3>
+      <p>公司实行标准工时制，工作时间为每周一至周五上午 9:00 至下午 18:00，午休时间 12:00-13:00。</p>
+      <h3>第三章 行为规范</h3>
+      <ul>
+        <li>遵守国家法律法规及公司各项规章制度</li>
+        <li>爱岗敬业，认真履行岗位职责</li>
+        <li>诚实守信，不弄虚作假，不损害公司利益</li>
+        <li>保守公司商业秘密，未经授权不得对外披露</li>
+        <li>尊重同事，团结协作，禁止职场骚扰</li>
+      </ul>
+      <h3>第四章 考勤与请假</h3>
+      <p>员工上下班须打卡考勤，因公外出须提前报备。请假须提前填写申请单。</p>
+      <h3>第五章 薪酬与福利</h3>
+      <p>公司按月发放工资，员工享有五险一金、带薪年假、节日福利等。</p>
+      <h3>第六章 保密义务</h3>
+      <p>员工对公司商业秘密负有保密义务，包括客户资料、财务数据、技术方案等。</p>
+      <h3>第七章 附则</h3>
+      <p>本手册由公司人事部负责解释，员工签署即表示已知悉并同意遵守本手册的全部内容。</p>
+    `;
+  }
+
+  // 获取签名图
+  const signDataUrl = canvas.toDataURL('image/png');
+
+  // 生成打印页面 HTML
+  const printHTML = `
+    <div class="print-doc">
+      <h1>📋 员工手册签收确认单</h1>
+      
+      <div class="print-info">
+        <table>
+          <tr><td>签署员工</td><td>${employeeName}</td></tr>
+          <tr><td>所属部门</td><td>${employeeDept}</td></tr>
+          <tr><td>员工编号</td><td>${employeeId}</td></tr>
+          <tr><td>签署时间</td><td>${signTime}</td></tr>
+        </table>
+      </div>
+      
+      <div class="print-handbook">
+        ${handbookHTML}
+      </div>
+      
+      <div class="print-sign-area">
+        <div class="print-sign-label">员工手写签名：</div>
+        <img src="${signDataUrl}" class="print-sign-img" alt="签名" />
+      </div>
+      
+      <div class="print-confirm">
+        <strong>确认声明：</strong><br/>
+        本人已阅读并完全理解《员工手册》全部内容，承诺遵守公司各项规章制度，如有违反，愿意接受相应处理。
+      </div>
+      
+      <div class="print-footer">
+        本文档由系统自动生成 · 签署时间：${signTime}<br/>
+        员工手册版本：企业门户管理系统 v1.0
+      </div>
+    </div>
+  `;
+
+  // 创建新窗口并打印
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>员工手册签收确认单 - ${employeeName}</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', 'SimSun', serif; background: #fff; color: #000; padding: 40px; }
+        .print-doc { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; font-size: 24px; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        .print-info { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 8px 12px; font-size: 14px; }
+        td:first-child { font-weight: bold; width: 120px; color: #666; }
+        .print-handbook { border: 1px solid #ddd; padding: 30px; border-radius: 8px; margin-bottom: 30px; }
+        .print-handbook h3 { font-size: 16px; margin: 20px 0 10px; color: #333; }
+        .print-handbook h3:first-child { margin-top: 0; }
+        .print-handbook p { font-size: 13px; line-height: 1.8; margin-bottom: 10px; color: #555; }
+        .print-handbook ul { margin: 10px 0; padding-left: 25px; }
+        .print-handbook li { font-size: 13px; line-height: 1.8; color: #555; }
+        .print-sign-area { border: 2px solid #333; padding: 40px 30px; border-radius: 8px; margin-bottom: 30px; text-align: center; }
+        .print-sign-label { font-size: 14px; color: #666; margin-bottom: 20px; }
+        .print-sign-img { max-width: 300px; max-height: 150px; margin: 0 auto; }
+        .print-confirm { background: #f9f9f9; border: 1px solid #ddd; padding: 20px; border-radius: 8px; font-size: 13px; line-height: 1.8; color: #555; margin-bottom: 20px; }
+        .print-footer { text-align: center; font-size: 12px; color: #999; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
+        @media print {
+          body { padding: 0; }
+          .print-doc { max-width: 100%; }
+        }
+      </style>
+    </head>
+    <body>${printHTML}</body>
+    </html>
+  `);
+  printWindow.document.close();
+  
+  // 等待内容加载后自动打印
+  printWindow.onload = function() {
+    setTimeout(() => {
+      printWindow.print();
+      // 不关闭窗口，让用户可以另存为PDF
+    }, 500);
+  };
+  
+  btn.disabled = false;
+  btn.textContent = '📄 下载签名单（存档用）';
 }
 
 /* ============ 启动 ============ */
