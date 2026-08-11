@@ -556,10 +556,24 @@ async function handleApi(request, env, path, method) {
       const list = await env.ENTERPRISE_KV.get('employees');
       let employees = list ? JSON.parse(list) : [];
       const idx = employees.findIndex(e => e.id === body.id);
-      if (idx < 0) return jsonResponse({ error: 'employee not found' }, 404);
-      employees[idx].signed = true;
-      employees[idx].signTime = new Date().toISOString();
-      employees[idx].signImage = body.signImage;
+      
+      if (idx < 0) {
+        // 员工不存在，自动创建（从扫码 URL 来的新员工）
+        employees.push({
+          id: body.id,
+          name: body.name || '未命名',
+          dept: body.dept || '未分配',
+          signed: true,
+          signTime: new Date().toISOString(),
+          signImage: body.signImage
+        });
+      } else {
+        // 更新现有员工
+        employees[idx].signed = true;
+        employees[idx].signTime = new Date().toISOString();
+        employees[idx].signImage = body.signImage;
+      }
+      
       await env.ENTERPRISE_KV.put('employees', JSON.stringify(employees));
       return jsonResponse({ ok: true });
     }

@@ -153,6 +153,9 @@
   </div>
 
 <script>
+/* ============ Worker API 地址 ============ */
+const WORKER_API = 'https://enterprise-portal-api.198981734.workers.dev';
+
 /* ============ 解析 URL 参数 ============ */
 const params = new URLSearchParams(location.search);
 const employeeName = params.get('name') || '员工';
@@ -285,38 +288,61 @@ function checkSubmitable() {
 
 document.getElementById('agree').addEventListener('change', checkSubmitable);
 
-function submitSign() {
+async function submitSign() {
   if (!hasDrawn) { alert('请先签名'); return; }
   if (!document.getElementById('agree').checked) { alert('请先勾选确认'); return; }
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = '提交中...';
 
   // 获取签名图 base64
   const signDataUrl = canvas.toDataURL('image/png');
 
-  // 保存到 localStorage（演示用；真实场景应上传到服务器）
-  const record = {
-    employeeId,
-    name: employeeName,
-    dept: employeeDept,
-    signImage: signDataUrl,
-    signTime: new Date().toISOString(),
-    userAgent: navigator.userAgent
-  };
-  localStorage.setItem('sign_record_' + employeeId, JSON.stringify(record));
-
-  // 显示成功页
-  document.getElementById('sign-page').style.display = 'none';
-  document.getElementById('success-page').classList.add('show');
-  document.getElementById('sign-time').textContent = '签署时间：' + formatDateTime(new Date());
-
-  // 通知主页面（如果是同一浏览器）
   try {
-    if (window.opener) {
-      window.opener.postMessage({ type: 'sign_done', employeeId, signDataUrl }, '*');
-    }
-    // 通过 BroadcastChannel 通知其他标签页
-    const bc = new BroadcastChannel('enterprise_portal');
-    bc.postMessage({ type: 'sign_done', employeeId, signDataUrl });
-  } catch (e) {}
+    // 提交到 Worker API
+    const res = await fetch(WORKER_API + '/api/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: employeeId,
+        signImage: signDataUrl,
+        name: employeeName,
+        dept: employeeDept
+      })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || '提交失败');
+
+    // 本地备份
+    const record = {
+      employeeId,
+      name: employeeName,
+      dept: employeeDept,
+      signImage: signDataUrl,
+      signTime: new Date().toISOString(),
+      userAgent: navigator.userAgent
+    };
+    localStorage.setItem('sign_record_' + employeeId, JSON.stringify(record));
+
+    // 显示成功页
+    document.getElementById('sign-page').style.display = 'none';
+    document.getElementById('success-page').classList.add('show');
+    document.getElementById('sign-time').textContent = '签署时间：' + formatDateTime(new Date());
+
+    // 通知主页面（如果是同一浏览器）
+    try {
+      if (window.opener) {
+        window.opener.postMessage({ type: 'sign_done', employeeId, signDataUrl }, '*');
+      }
+      const bc = new BroadcastChannel('enterprise_portal');
+      bc.postMessage({ type: 'sign_done', employeeId, signDataUrl });
+    } catch (e) {}
+  } catch (err) {
+    alert('提交失败：' + err.message);
+    btn.disabled = false;
+    btn.textContent = '确认签署';
+  }
 }
 
 /* ============ 工具函数 ============ */

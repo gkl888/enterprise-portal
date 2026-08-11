@@ -780,8 +780,9 @@ async function loadSignQr() {
   params.set('id', empId);
   params.set('name', state.authName || state.loginName || '');
   params.set('dept', state.authDept || '');
-  currentSignUrl = (API_BASE || location.origin + location.pathname.replace('index.html','')) +
-                   '/m-sign.html?' + params.toString();
+  // 二维码指向 GitHub Pages（国内可访问），签名数据通过 API 提交到 Worker
+  currentSignUrl = (location.origin + location.pathname.replace('index.html','')) +
+                   'm-sign.html?' + params.toString();
 
   document.getElementById('sign-qr-img').src =
     'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(currentSignUrl);
