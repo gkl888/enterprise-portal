@@ -283,7 +283,7 @@
 
       <div class="card">
         <div class="card-title">👥 员工列表 <span id="emp-count" style="font-size:12px;color:var(--text3);font-weight:400;"></span></div>
-        <div id="employee-list">
+        <button class="btn" onclick="cleanOldEmployees()" style="margin-bottom:12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);padding:6px 12px;border-radius:6px;font-size:13px;">🧹 清理测试数据</button>`n        <div id="employee-list">
           <div class="empty-state"><div style="color:var(--text3)">加载中...</div></div>
         </div>
       </div>
@@ -322,9 +322,9 @@
 
   <script>
     // ===== 云端配置 =====
-    
-    const DATA_RAW_URL = 'https://gkl888.github.io/enterprise-portal/data/portal-data.json';
-    const DATA_API_URL = 'https://api.github.com/repos/gkl888/enterprise-portal/contents/data/portal-data.json';
+    const GIST_ID = '041a109a428fa8569ba209ee4bd5c3eb';
+    const GIST_RAW_URL = 'https://gist.githubusercontent.com/gkl888/' + GIST_ID + '/raw/portal-data.json';
+    const GIST_API_URL = 'https://api.github.com/gists/' + GIST_ID;
 
     // 存储 key
     const LOCAL_KEY = 'yijia_portal_data';
@@ -335,7 +335,7 @@
     // 状态
     let cloudData = null;  // 云端数据
     let localData = null;  // 本地数据
-    let fileSha = null;    // Gist SHA（更新时需要）
+    let gistSha = null;    // Gist SHA（更新时需要）
 
     // ===== GitHub Token =====
     // Token 存储在 localStorage，用户首次使用时配置
@@ -374,7 +374,7 @@
 
     // ===== 云端读取 =====
     async function loadFromCloud() {
-      const resp = await fetch(DATA_RAW_URL + '?t=' + Date.now());
+      const resp = await fetch(GIST_RAW_URL + '?t=' + Date.now());
       if (!resp.ok) throw new Error('云端读取失败 ' + resp.status);
       const data = await resp.json();
       // 迁移旧格式
@@ -385,31 +385,39 @@
     }
 
     // ===== 云端保存 =====
-        async function saveToCloud(data) {
+    async function saveToCloud(data) {
       const token = getToken();
       if (!token) {
-        console.log('未配置 GitHub Token，仅保存本地');
+        console.log('未配置 GitHub Token，跳过云端保存');
         return;
       }
-    
-      try {
-        const base64Content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-        const resp = await fetch(DATA_API_URL, {
-          method: 'PUT',
-          headers: {
-            Authorization: 'token ' + token,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            message: 'update portal data',
-            content: base64Content
-          })
-        });
-        if (resp.ok) console.log('云端保存成功');
-        else console.error('云端保存失败:', resp.status);
-      } catch(e) {
-        console.error('saveToCloud error:', e);
-      }
+      
+      // 先获取当前 SHA
+      const metaResp = await fetch(GIST_API_URL, {
+        headers: { Authorization: 'token ' + token }
+      });
+      const meta = await metaResp.json();
+      gistSha = meta.sha;
+
+      const resp = await fetch(GIST_API_URL, {
+        method: 'PATCH',
+        headers: {
+          Authorization: 'token ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          description: '益家企业门户数据存储',
+          files: {
+            'portal-data.json': {
+              content: JSON.stringify(data, null, 2)
+            }
+          }
+        })
+      });
+      
+      if (!resp.ok) throw new Error('云端保存失败 ' + resp.status);
+      const result = await resp.json();
+      gistSha = result.sha;
     }
 
     // ===== 本地存储 =====
@@ -706,7 +714,7 @@
       msg.textContent = '测试中...';
       msg.style.color = 'var(--text3)';
       try {
-        const r = await fetch('DATA_API_URL, {
+        const r = await fetch('https://api.github.com/gists/' + GIST_ID, {
           headers: { Authorization: 'token ' + token }
         });
         if (r.ok) {
