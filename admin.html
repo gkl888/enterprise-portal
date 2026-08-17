@@ -718,7 +718,7 @@
       msg.textContent = '测试中...';
       msg.style.color = 'var(--text3)';
       try {
-        const r = await fetch('DATA_API_URL, {
+        const r = await fetch(DATA_API_URL, {
           headers: { Authorization: 'token ' + token }
         });
         if (r.ok) {
