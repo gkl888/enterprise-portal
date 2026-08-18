@@ -983,44 +983,39 @@ async function submitToServer(data) {
    员工手册
 ======================================================== */
 async function loadHandbookFromCloud() {
-  try {
-    console.log('=== loadHandbookFromCloud 开始执行 ===');
-    const data = await loadCloudData();
-    console.log('=== loadCloudData 返回 ===', data);
-    console.log('云端数据:', data);
-    if (data && data.handbook && data.handbook.content && data.handbook.content.trim()) {
-      console.log('手册内容长度:', data.handbook.content.length);
-      console.log('手册内容前100字:', data.handbook.content.substring(0, 100));
-      const body = document.getElementById('handbook-body');
-      const content = data.handbook.content;
-      
-      // 判断内容是否包含 HTML 标签
-      const hasHtml = /<[^>]+>/.test(content);
-      
-      if (hasHtml) {
-        // 已经是 HTML，直接使用
-        body.innerHTML = content;
-      } else {
-        // 纯文本，转换为 HTML 保留换行和段落格式
-        body.innerHTML = content
-          .split('\n\n')
-          .map(p => p.trim() ? '<p>' + p.replace(/\n/g, '<br>') + '</p>' : '')
-          .join('');
-      }
-      
-      // 自动高亮第X章标题和中文序号
-      highlightChapterTitles(body);
-      // 移除阿拉伯数字序号的加粗样式
-      removeArabicNumberBold(body);
-      
-      const titleEl = document.querySelector('#page-handbook .handbook-header h2');
-      if (titleEl && data.handbook.title) titleEl.textContent = '📋 ' + data.handbook.title;
-      console.log('已从云端加载手册');
-    } else {
-      console.log('云端无手册内容，显示默认');
-      console.log('data:', data);
-      console.log('data.handbook:', data?.handbook);
-    }
+    // 内置手册内容，无需云端读取
+    const body = document.getElementById('handbook-body');
+    const content = """第一章 入职指引
+
+欢迎加入益家！我们是一家专注于精品库存尾货供应链的企业。
+
+第二章 公司文化
+
+我们的核心价值观：靠谱做货，用心做事。
+
+第三章 工作规范
+
+一、考勤制度
+工作时间：周一至周五 9:00-18:00，午休 12:00-13:00
+
+二、行为规范
+1. 诚实守信，不弄虚作假
+2. 爱岗敬业，认真履行岗位职责
+3. 尊重同事，团结协作""";
+    
+    // 纯文本转 HTML
+    body.innerHTML = content
+      .split('\n\n')
+      .map(p => p.trim() ? '<p>' + p.replace(/\n/g, '<br>') + '</p>' : '')
+      .join('');
+    
+    // 高亮章节标题
+    highlightChapterTitles(body);
+    removeArabicNumberBold(body);
+    
+    const titleEl = document.querySelector('#page-handbook .handbook-header h2');
+    if (titleEl) titleEl.textContent = '📋 益家员工手册';
+    console.log('已加载内置手册');
   } catch(e) {
     console.error('加载云端手册失败:', e);
   }
