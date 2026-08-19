@@ -1145,10 +1145,25 @@ async function loadHandbookFromCloud() {
 义乌市益家供应链管理有限公司`;
     
     // 纯文本转 HTML：双空行分段，单空行换行
-    body.innerHTML = content
-      .split('\n\n')
-      .map(p => p.trim() ? '<p>' + p.replace(/\n/g, '<br>') + '</p>' : '')
-      .join('');
+    // 逐行分段落：空行结束段落，章节标题独占一段
+    body.innerHTML = (function() {
+      const lines = content.split('\n');
+      const result = [];
+      let current = [];
+      for (const line of lines) {
+        const s = line.trim();
+        if (!s) {
+          if (current.length > 0) { result.push(current.join('<br>')); current = []; }
+        } else if (/^第[一二三四五六七八九十\d]+章/.test(s)) {
+          if (current.length > 0) { result.push(current.join('<br>')); current = []; }
+          result.push(s);
+        } else {
+          current.push(s);
+        }
+      }
+      if (current.length > 0) result.push(current.join('<br>'));
+      return result.map(p => '<p>' + p + '</p>').join('');
+    })();
     
     // 高亮章节标题
     highlightChapterTitles(body);
@@ -1193,9 +1208,7 @@ function highlightChapterTitles(container) {
       p.style.fontSize = '16px';
       p.style.marginTop = '20px';
       p.style.marginBottom = '12px';
-    } else if (isChineseNumberedList) {
-      p.style.fontWeight = '600';
-    }
+    } // 中文序号不额外加粗，保持正常字重
   });
 }
 
