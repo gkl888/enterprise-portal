@@ -1145,24 +1145,38 @@ async function loadHandbookFromCloud() {
 义乌市益家供应链管理有限公司`;
     
     // 纯文本转 HTML：双空行分段，单空行换行
-    // 逐行分段落：空行结束段落，章节标题独占一段
+    // 逐行分段落：每个非空行独立为<p>，阿拉伯数字开头的项保持独立
     body.innerHTML = (function() {
       const lines = content.split('\n');
       const result = [];
-      let current = [];
       for (const line of lines) {
         const s = line.trim();
-        if (!s) {
-          if (current.length > 0) { result.push(current.join('<br>')); current = []; }
-        } else if (/^第[一二三四五六七八九十\d]+章/.test(s)) {
-          if (current.length > 0) { result.push(current.join('<br>')); current = []; }
-          result.push(s);
+        if (!s) continue;
+        result.push(s);
+      }
+      // 将阿拉伯数字项与其后的续行（无序号的说明文字）合并为一个<p>
+      const merged = [];
+      for (let i = 0; i < result.length; i++) {
+        if (/^\d+[、.．:]/.test(result[i])) {
+          // 阿拉伯数字项 + 后续续行（不以数字/章节/一、二、三开头）
+          const parts = [result[i]];
+          let j = i + 1;
+          while (j < result.length) {
+            const next = result[j].trim();
+            if (!next) break;
+            if (/^[第\d一二三四五六七八九十]/.test(next)) break;
+            parts.push(next);
+            j++;
+          }
+          merged.push(parts.join('<br>'));
+          i = j - 1;
+        } else if (/^第[一二三四五六七八九十\d]+章/.test(result[i])) {
+          merged.push(result[i]);
         } else {
-          current.push(s);
+          merged.push(result[i]);
         }
       }
-      if (current.length > 0) result.push(current.join('<br>'));
-      return result.map(p => '<p>' + p + '</p>').join('');
+      return merged.map(p => '<p>' + p + '</p>').join('');
     })();
     
     // 高亮章节标题
