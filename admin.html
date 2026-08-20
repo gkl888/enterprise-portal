@@ -300,6 +300,14 @@
     </div>
   </div>
 
+  <div class="qr-modal" id="detailModal" onclick="if(event.target===this)closeDetailModal()">
+    <div class="qr-modal-content" style="max-width:720px;text-align:left;max-height:85vh;overflow-y:auto;">
+      <h3 id="detail-emp-name" style="text-align:center;margin-bottom:16px;">员工详情</h3>
+      <div id="detail-content"></div>
+      <button class="btn btn-primary" style="margin-top:16px;width:100%;" onclick="closeDetailModal()">关闭</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <!-- Token 配置弹窗 -->
@@ -481,30 +489,92 @@
       }
     }
 
+    function maskIdCard(id) {
+      if (!id) return '';
+      const s = String(id);
+      if (s.length <= 8) return s;
+      return s.substring(0, 4) + '**********' + s.substring(s.length - 4);
+    }
+
     function renderEmployeeList() {
       const container = document.getElementById('employee-list');
       const emps = localData.employees;
       if (emps.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div>暂无员工数据</div></div>';
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">馃摥</div><div>鏆傛棤鍛樺伐鏁版嵁</div></div>';
         return;
       }
-      container.innerHTML = emps.map(emp => `
-        <div class="employee-item">
+      container.innerHTML = emps.map(emp => {
+        const hasAuth = !!(emp.idCard || emp.idCardFront || emp.idCardBack);
+        const hasHandbook = !!emp.handbookConfirmed;
+        const idCardText = emp.idCard ? maskIdCard(emp.idCard) : '—';
+        const joinDateText = emp.joinDate || '—';
+        const phoneText = emp.phone || '—';
+        const deptText = emp.dept || '—';
+        const hasPhoto = !!(emp.idCardFront || emp.idCardBack);
+        return `
+        <div class="employee-item" onclick="showEmployeeDetail('${emp.id}')" style="cursor:pointer;">
           <div class="employee-info">
-            <div class="employee-avatar">${emp.name.charAt(0)}</div>
-            <div>
-              <div class="employee-name">${emp.name}</div>
-              <div class="employee-meta">${emp.dept || ''} · ${emp.phone || '无手机'}</div>
+            <div class="employee-avatar">${(emp.name || '?').charAt(0)}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="employee-name">${emp.name || '—'}</div>
+              <div class="employee-meta">${deptText} · ${joinDateText}</div>
+              <div class="employee-meta" style="font-family:monospace;font-size:12px;opacity:0.85;">${idCardText} · ${phoneText}</div>
             </div>
           </div>
-          <div class="employee-actions">
-            <span class="status-badge ${emp.handbookConfirmed ? 'status-confirmed' : 'status-pending'}">
-              ${emp.handbookConfirmed ? '✓ 已确认' : '待确认'}
+          <div class="employee-actions" onclick="event.stopPropagation();">
+            <span class="status-badge ${hasAuth ? 'status-confirmed' : 'status-pending'}" title="实名认证">
+              ${hasAuth ? '✅ 已认证' : '⚠ 待认证'}
             </span>
-            <button class="btn btn-sm btn-primary" onclick="showQR('${emp.id}')">📱 二维码</button>
+            <span class="status-badge ${hasHandbook ? 'status-confirmed' : 'status-pending'}" title="员工手册">
+              ${hasHandbook ? '📖 已确认' : '📋 待确认'}
+            </span>
+            <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();showEmployeeDetail('${emp.id}')" title="查看详情">${hasPhoto ? '🖼' : '👁'} 详情</button>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
+    }
+
+    function showEmployeeDetail(empId) {
+      const emp = localData.employees.find(e => e.id === empId);
+      if (!emp) return;
+      const idCardText = emp.idCard || '— 未填写';
+      const phoneText = emp.phone || '—';
+      const deptText = emp.dept || '—';
+      const joinDateText = emp.joinDate || '—';
+      const hasAuth = !!(emp.idCard || emp.idCardFront || emp.idCardBack);
+      const hasHandbook = !!emp.handbookConfirmed;
+      const handbookTime = emp.handbookConfirmTime ? new Date(emp.handbookConfirmTime).toLocaleString('zh-CN') : '—';
+      const front = emp.idCardFront ? `<img src="${emp.idCardFront}" style="width:100%;max-width:480px;border-radius:6px;cursor:pointer;" onclick="window.open(this.src, '_blank')">` : '<div class="empty-state"><div>— 未上传身份证正面 —</div></div>';
+      const back = emp.idCardBack ? `<img src="${emp.idCardBack}" style="width:100%;max-width:480px;border-radius:6px;cursor:pointer;" onclick="window.open(this.src, '_blank')">` : '<div class="empty-state"><div>— 未上传身份证背面 —</div></div>';
+      document.getElementById('detail-emp-name').textContent = (emp.name || '—') + ' - 入职详情';
+      document.getElementById('detail-content').innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px 24px;margin-bottom:20px;">
+          <div><strong>姓名：</strong>${emp.name || '—'}</div>
+          <div><strong>部门：</strong>${deptText}</div>
+          <div><strong>手机：</strong>${phoneText}</div>
+          <div><strong>入职日期：</strong>${joinDateText}</div>
+          <div style="grid-column:1/-1;"><strong>身份证号：</strong><span style="font-family:monospace;letter-spacing:1px;">${idCardText}</span></div>
+          <div><strong>实名认证：</strong>${hasAuth ? '<span style="color:#22c55e;">✅ 已认证</span>' : '<span style="color:#f59e0b;">⚠ 待认证</span>'}</div>
+          <div><strong>员工手册：</strong>${hasHandbook ? '<span style="color:#22c55e;">✅ 已确认</span> <span style="opacity:0.7;">（' + handbookTime + '）</span>' : '<span style="color:#f59e0b;">📋 待确认</span>'}</div>
+        </div>
+        <h3 style="margin:0 0 12px 0;font-size:15px;">📷 身份证照片（点击查看大图）</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <div style="font-size:13px;margin-bottom:6px;opacity:0.8;">人像面</div>
+            ${front}
+          </div>
+          <div>
+            <div style="font-size:13px;margin-bottom:6px;opacity:0.8;">国徽面</div>
+            ${back}
+          </div>
+        </div>
+      `;
+      document.getElementById('detailModal').classList.add('show');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.remove('show');
     }
 
     function renderRecentList() {
